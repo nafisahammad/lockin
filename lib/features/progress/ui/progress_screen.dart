@@ -82,7 +82,7 @@ class ProgressScreen extends ConsumerWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
-            _PlaceholderChart(label: 'Calendar Placeholder'),
+            _CalendarConsistency(),
           ],
         ),
       ),
@@ -168,6 +168,194 @@ class _PlaceholderChart extends StatelessWidget {
               .labelLarge
               ?.copyWith(color: context.lockInMuted),
         ),
+      ),
+    );
+  }
+}
+
+class _CalendarConsistency extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final logsAsync = ref.watch(_progressLogsProvider);
+    final habitsAsync = ref.watch(_progressHabitsProvider);
+    return logsAsync.when(
+      data: (logs) => habitsAsync.when(
+        data: (habits) {
+          final today = DateTime.now();
+          final firstDay = DateTime(today.year, today.month, 1);
+          final nextMonth = DateTime(today.year, today.month + 1, 1);
+          final daysInMonth = nextMonth.subtract(const Duration(days: 1)).day;
+          final leadingEmpty = (firstDay.weekday % 7);
+          final totalCells = leadingEmpty + daysInMonth;
+          final trailingEmpty = (7 - (totalCells % 7)) % 7;
+          final logMap = {for (final log in logs) log.id: log};
+
+          final days = List<DateTime?>.generate(
+            leadingEmpty,
+            (_) => null,
+          )
+            ..addAll(
+              List.generate(
+                daysInMonth,
+                (index) => DateTime(today.year, today.month, index + 1),
+              ),
+            )
+            ..addAll(List<DateTime?>.generate(trailingEmpty, (_) => null));
+
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: context.lockInSurfaceAlt,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${_monthName(today.month)} ${today.year}',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelLarge
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    _WeekdayLabel('S'),
+                    _WeekdayLabel('M'),
+                    _WeekdayLabel('T'),
+                    _WeekdayLabel('W'),
+                    _WeekdayLabel('T'),
+                    _WeekdayLabel('F'),
+                    _WeekdayLabel('S'),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: days.map((day) {
+                    if (day == null) {
+                      return const _CalendarCell(
+                        label: '',
+                        color: Colors.transparent,
+                        showBorder: false,
+                      );
+                    }
+                    final id = DisciplineLogic.formatDay(day);
+                    final log = logMap[id];
+                    final ratio = DisciplineLogic.completionRate(
+                      completed: log?.completedHabits.length ?? 0,
+                      total: habits.length,
+                    );
+                    final color =
+                        context.lockInAccent.withValues(alpha: ratio);
+                    return _CalendarCell(
+                      label: '${day.day}',
+                      color: color,
+                      showBorder: true,
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          );
+        },
+        loading: () => const _PlaceholderChart(label: 'Loading...'),
+        error: (_, _) => const _PlaceholderChart(label: 'Unavailable'),
+      ),
+      loading: () => const _PlaceholderChart(label: 'Loading...'),
+      error: (_, _) => const _PlaceholderChart(label: 'Unavailable'),
+    );
+  }
+
+  String _monthName(int month) {
+    switch (month) {
+      case 1:
+        return 'January';
+      case 2:
+        return 'February';
+      case 3:
+        return 'March';
+      case 4:
+        return 'April';
+      case 5:
+        return 'May';
+      case 6:
+        return 'June';
+      case 7:
+        return 'July';
+      case 8:
+        return 'August';
+      case 9:
+        return 'September';
+      case 10:
+        return 'October';
+      case 11:
+        return 'November';
+      case 12:
+        return 'December';
+    }
+    return '';
+  }
+}
+
+class _WeekdayLabel extends StatelessWidget {
+  const _WeekdayLabel(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 24,
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: Theme.of(context)
+            .textTheme
+            .labelSmall
+            ?.copyWith(color: context.lockInMuted),
+      ),
+    );
+  }
+}
+
+class _CalendarCell extends StatelessWidget {
+  const _CalendarCell({
+    required this.label,
+    required this.color,
+    required this.showBorder,
+  });
+
+  final String label;
+  final Color color;
+  final bool showBorder;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = showBorder
+        ? context.lockInSurface.withValues(alpha: 0.6)
+        : Colors.transparent;
+    return Container(
+      width: 24,
+      height: 24,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: borderColor),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: color.opacity <= 0.35
+                  ? context.lockInMuted
+                  : Colors.white,
+              fontSize: 10,
+            ),
       ),
     );
   }
