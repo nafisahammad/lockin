@@ -71,6 +71,16 @@ class ProfileScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               _SettingsTile(
+                title: 'Change Name',
+                subtitle: profile.name,
+                onTap: () => _showChangeNameDialog(
+                  context,
+                  ref,
+                  auth,
+                  profile.name,
+                ),
+              ),
+              _SettingsTile(
                 title: 'Change Email',
                 subtitle: auth.email ?? 'No email on file',
                 onTap: () => _showChangeEmailDialog(context, ref, auth),
@@ -189,6 +199,116 @@ class ProfileScreen extends ConsumerWidget {
                           context,
                           'Verification email sent to $newEmail.',
                         );
+                      } on FirebaseAuthException catch (error) {
+                        if (!dialogContext.mounted) return;
+                        setState(() {
+                          errorText = error.message;
+                          isSaving = false;
+                        });
+                        return;
+                      }
+                      if (!dialogContext.mounted) return;
+                      setState(() => isSaving = false);
+                    },
+              child: isSaving
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showChangeNameDialog(
+    BuildContext context,
+    WidgetRef ref,
+    User user,
+    String currentName,
+  ) async {
+    if (!_supportsPasswordProvider(user)) {
+      _showSnackBar(
+        context,
+        'Name updates require a password-based account.',
+      );
+      return;
+    }
+    final nameController = TextEditingController(text: currentName);
+    final passwordController = TextEditingController();
+    String? errorText;
+    bool isSaving = false;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setState) => AlertDialog(
+          title: const Text('Change Name'),
+          scrollable: true,
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: [
+                TextField(
+                  controller: nameController,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(labelText: 'New name'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Current password',
+                  ),
+                ),
+                if (errorText != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    errorText!,
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelMedium
+                        ?.copyWith(color: Colors.redAccent),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      final newName = nameController.text.trim();
+                      final password = passwordController.text;
+                      if (newName.isEmpty || password.isEmpty) {
+                        setState(() => errorText = 'All fields are required.');
+                        return;
+                      }
+                      setState(() {
+                        errorText = null;
+                        isSaving = true;
+                      });
+                      try {
+                        final authRepo = ref.read(authRepositoryProvider);
+                        await authRepo.reauthenticateWithPassword(
+                          email: user.email ?? '',
+                          password: password,
+                        );
+                        await user.updateDisplayName(newName);
+                        await ref
+                            .read(userProfileRepositoryProvider)
+                            .updateName(userId: user.uid, name: newName);
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext);
+                        }
+                        _showSnackBar(context, 'Name updated.');
                       } on FirebaseAuthException catch (error) {
                         if (!dialogContext.mounted) return;
                         setState(() {

@@ -35,4 +35,13 @@ class UserProfileRepository {
       'email': email,
     });
   }
+
+  Future<void> updateName({
+    required String userId,
+    required String name,
+  }) async {
+    await _doc(userId).update({
+      'name': name,
+    });
+  }
 }

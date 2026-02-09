@@ -30,61 +30,58 @@ class ProgressScreen extends ConsumerWidget {
         user == null ? null : ref.watch(userProfileProvider(user.uid));
     return Scaffold(
       appBar: AppBar(title: const Text('Progress')),
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _StatCard(
-              title: 'Current Streak',
-              value: '${profileAsync?.value?.currentStreak ?? 0} days',
-            ),
-            const SizedBox(height: 12),
-            _StatCard(
-              title: 'Longest Streak',
-              value: '${profileAsync?.value?.longestStreak ?? 0} days',
-            ),
-            const SizedBox(height: 12),
-            Consumer(builder: (context, ref, _) {
-              final logsAsync = ref.watch(_progressLogsProvider);
-              final habitsAsync = ref.watch(_progressHabitsProvider);
-              return logsAsync.when(
-                data: (logs) => habitsAsync.when(
-                  data: (habits) {
-                    final ratio =
-                        _weeklyConsistency(logs: logs, habits: habits);
-                    return _StatCard(
-                      title: 'Consistency (7 days)',
-                      value: '${(ratio * 100).round()}%',
-                    );
-                  },
-                  loading: () =>
-                      const _StatCard(title: 'Consistency (7 days)', value: '...'),
-                  error: (_, _) =>
-                    const _StatCard(title: 'Consistency (7 days)', value: '--'),
-                ),
+        children: [
+          _StatCard(
+            title: 'Current Streak',
+            value: '${profileAsync?.value?.currentStreak ?? 0} days',
+          ),
+          const SizedBox(height: 12),
+          _StatCard(
+            title: 'Longest Streak',
+            value: '${profileAsync?.value?.longestStreak ?? 0} days',
+          ),
+          const SizedBox(height: 12),
+          Consumer(builder: (context, ref, _) {
+            final logsAsync = ref.watch(_progressLogsProvider);
+            final habitsAsync = ref.watch(_progressHabitsProvider);
+            return logsAsync.when(
+              data: (logs) => habitsAsync.when(
+                data: (habits) {
+                  final ratio =
+                      _weeklyConsistency(logs: logs, habits: habits);
+                  return _StatCard(
+                    title: 'Consistency (7 days)',
+                    value: '${(ratio * 100).round()}%',
+                  );
+                },
                 loading: () =>
                     const _StatCard(title: 'Consistency (7 days)', value: '...'),
                 error: (_, _) =>
                   const _StatCard(title: 'Consistency (7 days)', value: '--'),
-              );
-            }),
-            const SizedBox(height: 24),
-            Text(
-              'Weekly Completion',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            _WeeklyChart(),
-            const SizedBox(height: 24),
-            Text(
-              'Calendar',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            _CalendarConsistency(),
-          ],
-        ),
+              ),
+              loading: () =>
+                  const _StatCard(title: 'Consistency (7 days)', value: '...'),
+              error: (_, _) =>
+                const _StatCard(title: 'Consistency (7 days)', value: '--'),
+            );
+          }),
+          const SizedBox(height: 24),
+          Text(
+            'Weekly Completion',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+          _WeeklyChart(),
+          const SizedBox(height: 24),
+          Text(
+            'Calendar',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+          _CalendarConsistency(),
+        ],
       ),
     );
   }
@@ -221,22 +218,29 @@ class _CalendarConsistency extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: const [
-                    _WeekdayLabel('S'),
-                    _WeekdayLabel('M'),
-                    _WeekdayLabel('T'),
-                    _WeekdayLabel('W'),
-                    _WeekdayLabel('T'),
-                    _WeekdayLabel('F'),
-                    _WeekdayLabel('S'),
+                    Expanded(child: _WeekdayLabel('S')),
+                    Expanded(child: _WeekdayLabel('M')),
+                    Expanded(child: _WeekdayLabel('T')),
+                    Expanded(child: _WeekdayLabel('W')),
+                    Expanded(child: _WeekdayLabel('T')),
+                    Expanded(child: _WeekdayLabel('F')),
+                    Expanded(child: _WeekdayLabel('S')),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: days.map((day) {
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
+                    mainAxisSpacing: 6,
+                    crossAxisSpacing: 6,
+                    childAspectRatio: 1,
+                  ),
+                  itemCount: days.length,
+                  itemBuilder: (context, index) {
+                    final day = days[index];
                     if (day == null) {
                       return const _CalendarCell(
                         label: '',
@@ -257,7 +261,7 @@ class _CalendarConsistency extends ConsumerWidget {
                       color: color,
                       showBorder: true,
                     );
-                  }).toList(),
+                  },
                 ),
               ],
             ),
@@ -309,8 +313,7 @@ class _WeekdayLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 24,
+    return Center(
       child: Text(
         label,
         textAlign: TextAlign.center,

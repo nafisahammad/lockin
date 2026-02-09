@@ -651,7 +651,6 @@ class _MomentumGrid extends StatelessWidget {
                               log?.completedHabits.contains(habit.id) ?? false;
                           final missed =
                               log?.missedHabits.contains(habit.id) ?? false;
-                          final isToday = id == todayId;
                           final tile = Container(
                             width: 14,
                             height: 14,
@@ -667,13 +666,13 @@ class _MomentumGrid extends StatelessWidget {
                               ),
                             ),
                           );
-                          if (!isToday) return tile;
                           return GestureDetector(
-                            onTap: () => _toggleToday(
+                            onTap: () => _toggleForDay(
                               context,
                               habit,
                               log,
                               userId,
+                              day,
                             ),
                             child: tile,
                           );
@@ -751,6 +750,51 @@ class _MomentumGrid extends StatelessWidget {
       id: DisciplineLogic.formatDay(today),
       userId: userId,
       date: today,
+      completedHabits: completed,
+      missedHabits: missed,
+      reflectionAnswers: current.reflectionAnswers,
+    );
+    await repo.upsertLog(updated);
+    final delta = DisciplineLogic.pointsForDifficulty(habit.difficulty);
+    await profileRepo.incrementDisciplineScore(
+      userId,
+      alreadyDone ? -delta : delta,
+    );
+    final logs = await repo.fetchRecentLogs(userId, limit: 90);
+    final stats = DisciplineLogic.computeStreaks(logs);
+    await profileRepo.updateStreaks(
+      userId: userId,
+      currentStreak: stats.current,
+      longestStreak: stats.longest,
+    );
+  }
+
+  Future<void> _toggleForDay(
+    BuildContext context,
+    Habit habit,
+    DailyLog? log,
+    String userId,
+    DateTime day,
+  ) async {
+    final repo = ProviderScope.containerOf(context)
+        .read(dailyLogRepositoryProvider);
+    final profileRepo = ProviderScope.containerOf(context)
+        .read(userProfileRepositoryProvider);
+    final current = log ?? DisciplineLogic.createEmptyLog(day, userId);
+    final completed = List<String>.from(current.completedHabits);
+    final missed = List<String>.from(current.missedHabits);
+    final alreadyDone = completed.contains(habit.id);
+    if (alreadyDone) {
+      completed.remove(habit.id);
+      if (!missed.contains(habit.id)) missed.add(habit.id);
+    } else {
+      completed.add(habit.id);
+      missed.remove(habit.id);
+    }
+    final updated = DailyLog(
+      id: DisciplineLogic.formatDay(day),
+      userId: userId,
+      date: day,
       completedHabits: completed,
       missedHabits: missed,
       reflectionAnswers: current.reflectionAnswers,
