@@ -1,0 +1,3 @@
+build/** linguist-generated=true
+android/build/** linguist-generated=true
+web/** linguist-generated=true
