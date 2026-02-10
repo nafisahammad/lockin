@@ -73,7 +73,7 @@ class _HabitFormScreenState extends ConsumerState<HabitFormScreen> {
   Widget build(BuildContext context) {
     final isEditing = _editing != null;
     return Scaffold(
-      appBar: AppBar(title: Text(isEditing ? 'Edit Protocol' : 'New Protocol')),
+      appBar: AppBar(title: Text(isEditing ? 'Edit Habit' : 'New Habit')),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -82,14 +82,14 @@ class _HabitFormScreenState extends ConsumerState<HabitFormScreen> {
             children: [
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(labelText: 'Protocol title'),
+                decoration: const InputDecoration(labelText: 'Title'),
                 validator: (value) =>
                     value == null || value.isEmpty ? 'Enter title' : null,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: _category,
-                decoration: const InputDecoration(labelText: 'Domain'),
+                decoration: const InputDecoration(labelText: 'Category'),
                 items: const [
                   'Fitness',
                   'Study',
@@ -107,7 +107,7 @@ class _HabitFormScreenState extends ConsumerState<HabitFormScreen> {
               const SizedBox(height: 16),
               DropdownButtonFormField<HabitDifficulty>(
                 initialValue: _difficulty,
-                decoration: const InputDecoration(labelText: 'Intensity'),
+                decoration: const InputDecoration(labelText: 'Difficulty'),
                 items: HabitDifficulty.values.map((difficulty) {
                   return DropdownMenuItem(
                     value: difficulty,
@@ -120,7 +120,7 @@ class _HabitFormScreenState extends ConsumerState<HabitFormScreen> {
               const SizedBox(height: 16),
               DropdownButtonFormField<HabitTimeOfDay>(
                 initialValue: _timeOfDay,
-                decoration: const InputDecoration(labelText: 'Time block'),
+                decoration: const InputDecoration(labelText: 'Preferred Time'),
                 items: HabitTimeOfDay.values.map((time) {
                   return DropdownMenuItem(
                     value: time,
@@ -134,7 +134,7 @@ class _HabitFormScreenState extends ConsumerState<HabitFormScreen> {
               TextFormField(
                 controller: _identityController,
                 decoration: const InputDecoration(
-                  labelText: 'Identity tag (I am...)',
+                  labelText: 'Identity Tag (I am...)',
                 ),
               ),
               const SizedBox(height: 16),
@@ -142,12 +142,12 @@ class _HabitFormScreenState extends ConsumerState<HabitFormScreen> {
                 value: _reminderEnabled,
                 onChanged: (value) =>
                     setState(() => _reminderEnabled = value),
-                title: const Text('Enable reminder'),
+                title: const Text('Enable Reminder'),
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _loading ? null : _save,
-                child: Text(_loading ? 'Saving...' : 'Save Protocol'),
+                child: Text(_loading ? 'Saving...' : 'Save Habit'),
               ),
             ],
           ),
